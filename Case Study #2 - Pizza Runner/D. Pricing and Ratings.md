@@ -173,3 +173,53 @@ SELECT * FROM runner_rating;
 
 ---
 
+
+#### 4. Using your newly generated table - can you join all of the information together to form a table which has the following information for successful deliveries?
+- customer_id
+- order_id
+- runner_id
+- rating
+- order_time
+- pickup_time
+- Time between order and pickup
+- Delivery duration
+- Average speed
+- Total number of pizzas
+
+#### 🧠 My Solution:
+
+````sql
+SELECT 
+    coc.customer_id, 
+    coc.order_id, 
+    roc.runner_id, 
+    rr.customer_rating, 
+    coc.order_time, 
+    roc.pickup_time, 
+    DATE_PART('minute', roc.pickup_time - coc.order_time) AS time_between_order_and_pickup, 
+    roc.duration AS delivery_duration, 
+    ROUND(AVG((roc.distance / roc.duration * 60)::numeric), 1) AS average_speed, 
+    COUNT(coc.pizza_id) AS total_number_of_pizzas
+FROM customer_orders_cleaned coc
+LEFT JOIN runner_orders_cleaned roc ON coc.order_id = roc.order_id 
+LEFT JOIN runner_rating rr ON coc.order_id = rr.order_id
+WHERE roc.cancellation = ''
+GROUP BY 
+    coc.customer_id, coc.order_id, roc.runner_id, rr.customer_rating,
+    coc.order_time, roc.pickup_time, roc.duration  
+ORDER BY coc.order_id;
+````
+
+#### 📊 Query Result:
+| customer_id | order_id | runner_id | customer_rating | order_time          | pickup_time         | time_between_order_and_pickup | delivery_duration | average_speed | total_number_of_pizzas |
+| ----------- | -------- | --------- | --------------- | ------------------- | ------------------- | ----------------------------- | ----------------- | ------------- | ---------------------- |
+| 101         | 1        | 1         | 3               | 2020-01-01 18:05:02 | 2020-01-01 18:15:34 | 10                            | 32                | 37.5          | 1                      |
+| 101         | 2        | 1         | 5               | 2020-01-01 19:00:52 | 2020-01-01 19:10:54 | 10                            | 27                | 44.4          | 1                      |
+| 102         | 3        | 1         | 2               | 2020-01-02 23:51:23 | 2020-01-03 00:12:37 | 21                            | 20                | 40.2          | 2                      |
+| 103         | 4        | 2         | 4               | 2020-01-04 13:23:46 | 2020-01-04 13:53:03 | 29                            | 40                | 35.1          | 3                      |
+| 104         | 5        | 3         | 1               | 2020-01-08 21:00:29 | 2020-01-08 21:10:57 | 10                            | 15                | 40.0          | 1                      |
+| 105         | 7        | 2         | 5               | 2020-01-08 21:20:29 | 2020-01-08 21:30:45 | 10                            | 25                | 60.0          | 1                      |
+| 102         | 8        | 2         | 3               | 2020-01-09 23:54:33 | 2020-01-10 00:15:02 | 20                            | 15                | 93.6          | 1                      |
+| 104         | 10       | 1         | 4               | 2020-01-11 18:34:49 | 2020-01-11 18:50:20 | 15                            | 10                | 60.0          | 2                      |
+
+---
