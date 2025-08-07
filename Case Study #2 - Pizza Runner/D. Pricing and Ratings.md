@@ -223,3 +223,43 @@ ORDER BY coc.order_id;
 | 104         | 10       | 1         | 4               | 2020-01-11 18:34:49 | 2020-01-11 18:50:20 | 15                            | 10                | 60.0          | 2                      |
 
 ---
+
+#### 5. If a Meat Lovers pizza was $12 and Vegetarian $10 fixed prices with no cost for extras and each runner is paid $0.30 per kilometre traveled - how much money does Pizza Runner have left over after these deliveries?
+
+#### 🧠 My Solution:
+
+````sql
+WITH order_costs AS (
+    SELECT 
+        coc.order_id,
+        SUM(CASE WHEN coc.pizza_id = 1 THEN 12 ELSE 10 END) AS pizza_cost,
+        ROUND((0.30 * roc.distance)::numeric, 2) AS delivery_cost
+    FROM customer_orders_cleaned coc
+    INNER JOIN runner_orders_cleaned roc ON coc.order_id = roc.order_id
+    WHERE cancellation = ''
+    GROUP BY coc.order_id, roc.distance
+)
+SELECT 
+    SUM(pizza_cost) AS total_sales_amount,
+    SUM(delivery_cost) AS total_runner_cost,
+    ROUND(SUM(pizza_cost - delivery_cost), 2) AS net_profit
+FROM order_costs;;
+````
+<details> <summary><strong>Solution Approach:</strong></summary>
+
+- Joined relevant tables such as customer_orders_cleaned, pizza_names, and runner_orders_cleaned to get the distance for delivery cost.
+- Calculated total pizza sales by adding $12 for each Meat Lovers pizza and $10 for each Vegetarian pizza sold.
+- Calculated total delivery cost by multiplying each delivery distance by $0.30.
+- Subtracted total delivery cost from total pizza sales to find the net profit.
+</details>
+
+#### 📊 Query Result:
+| total_sales_amount | total_runner_cost | net_profit |
+| ------------------ | ----------------- | ---------- |
+| 138                | 43.56             | 94.44      |
+
+####  ⚡Insights:
+- The total $138 earned from selling all pizzas.
+- The total $43.56 paid to runners for delivering pizzas (based on distance).
+- The total $94.44 was left after paying the runners. This is the profit that Pizza Runner made!
+---
