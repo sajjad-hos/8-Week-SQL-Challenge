@@ -1,9 +1,52 @@
 <h2 id="case-study-2-pizza-runner">🍕 Case Study #2: Pizza Runner – D. Pricing and Ratings</h2>
 
-This section covers the solutions for `D. Pricing and Ratings` from `Case Study #2: Pizza Runner`. Below are the questions accompanied by their solution and detailed answers.
+This section covers Part `D. Pricing and Ratings` from `Case Study #2: Pizza Runner`, including each question’s approach, solution, and result.
 
 <h2 id="data-cleaning">🔖 Required Data </h2>
-To Be Added Later..
+
+I used the cleaned tables (`customer_orders_cleaned` and/or `runner_orders_cleaned`) as the original tables contain nulls or formatting issues.
+
+#### Query for cleaned and temporary `customer_orders` table data
+````sql
+DROP TABLE IF EXISTS customer_orders_cleaned;
+CREATE TEMPORARY TABLE customer_orders_cleaned AS
+    SELECT 
+          order_id,
+          customer_id, 
+          pizza_id,
+          CASE WHEN exclusions IS NULL OR exclusions ILIKE 'null' THEN '' ELSE exclusions END AS exclusions,
+          CASE WHEN extras IS NULL OR extras ILIKE 'null' THEN '' ELSE extras END AS extras,
+          order_time
+FROM customer_orders;
+````
+#### Query for cleaned and temporary `runner_orders` table data
+````sql
+DROP TABLE IF EXISTS runner_orders_cleaned;
+CREATE TEMPORARY TABLE runner_orders_cleaned AS
+    SELECT order_id,runner_id,
+        CASE WHEN pickup_time IS NULL OR pickup_time ILIKE 'null' THEN ''
+            ELSE pickup_time
+        END AS pickup_time,
+        CASE
+            WHEN distance IS NULL OR distance ILIKE 'null' THEN ''
+            ELSE regexp_replace(distance, '[a-zA-Z ]+', '', 'g')
+        END AS distance,
+        CASE
+            WHEN duration IS NULL OR duration ILIKE 'null' THEN ''
+            ELSE regexp_replace(duration, '[a-zA-Z ]+', '', 'g')
+        END AS duration,
+        CASE
+            WHEN cancellation IS NULL OR cancellation ILIKE 'null' THEN ''
+            ELSE cancellation
+        END AS cancellation
+FROM runner_orders;
+
+-- Convert data types on runner_orders_cleaned
+ALTER TABLE runner_orders_cleaned
+ALTER COLUMN pickup_time TYPE TIMESTAMP USING NULLIF(pickup_time, '')::TIMESTAMP,
+ALTER COLUMN distance TYPE FLOAT USING NULLIF(distance, '')::FLOAT,
+ALTER COLUMN duration TYPE INT USING NULLIF(duration, '')::INT;
+````
 
 <h2 id="questions-and-solutions">📌Questions & Solutions</h2>
 
@@ -73,7 +116,7 @@ FROM orders_with_extras;
 ````
 <details> <summary><strong>Solution Approach:</strong></summary>
 
-- Joined relevant tables such as customer_orders_cleaned, pizza_names, and runner_orders_cleaned to access pizza details and delivery status.
+- Joined relevant tables such as customer_orders_cleaned, pizza_prices, and runner_orders_cleaned.
 - Calculated pizza cost with CASE for base price and array_length(string_to_array(..., ', ')) to count $1 extras.
 - Filtered delivered orders with WHERE cancellation = '' and compute SUM(base_cost + extras_count) for total revenue.
 </details>
@@ -86,3 +129,47 @@ FROM orders_with_extras;
 ####  ⚡Insights:
 - The total revenue of $142 reflects all completed orders’ base pizza prices plus $1 for each extra topping added.
 ---
+
+#### 3. The Pizza Runner team now wants to add an additional ratings system that allows customers to rate their runner, how would you design an additional table for this new dataset - generate a schema for this new table and insert your own data for ratings for each successful customer order between 1 to 5.
+
+#### 🧠 My Solution:
+
+````sql
+DROP TABLE IF EXISTS runner_rating;
+CREATE TABLE runner_rating ( order_id INTEGER, customer_rating INTEGER, customer_review VARCHAR(100));
+INSERT INTO runner_rating (order_id, customer_rating, customer_review)
+VALUES 
+    (1, 3, 'Average service'),
+    (2, 5, 'Timely and friendly delivery!'),
+    (3, 2, 'Waited too long for my pizza'),
+    (4, 4, 'Runner found the place eventually, pizza was warm'),
+    (5, 1, 'Waited so long, not satisfied'),
+    (6, NULL, NULL),                                                -- Order 6 was cancelled, so rating and review were kept as NULL
+    (7, 5, 'Excellent service, very fast!'),
+    (8, 3, 'Left pizza at the door, a bit careless'),
+    (9, NULL, NULL),                                                -- Order 9 was cancelled, so rating and review were kept as NULL
+    (10, 4, 'Timing was a little delayed, but tasty pizza');
+
+SELECT * FROM runner_rating;
+````
+<details> <summary><strong>Solution Approach:</strong></summary>
+
+- Some orders were canceled, so I kept them NULL, and the rating column and review value were added as my own.
+</details>
+
+#### 📊 Query Result:
+| order_id | customer_rating | customer_review                                   |
+| -------- | --------------- | ------------------------------------------------- |
+| 1        | 3               | Average service                                   |
+| 2        | 5               | Timely and friendly delivery!                     |
+| 3        | 2               | Waited too long for my pizza                      |
+| 4        | 4               | Runner found the place eventually, pizza was warm |
+| 5        | 1               | Waited so long, not satisfied                     |
+| 6        |                 |                                                   |
+| 7        | 5               | Excellent service, very fast!                     |
+| 8        | 3               | Left pizza at the door, a bit careless            |
+| 9        |                 |                                                   |
+| 10       | 4               | Timing was a little delayed, but tasty pizza      |
+
+---
+
