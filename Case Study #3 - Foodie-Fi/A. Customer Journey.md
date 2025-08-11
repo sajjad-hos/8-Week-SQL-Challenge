@@ -1,8 +1,4 @@
-<h2 id="case-study-2-pizza-runner">🥑 Case Study #3 - Foodie-Fi – A. Customer Journey</h2>
-
-This section focuses exclusively on the solutions for `Case Study #3 - Foodie-Fi`, specifically covering section `A. Customer Journey`. Below, you’ll find the questions along with their detailed solutions.
-
-<h2 id="questions-and-solutions">📌Questions & Solutions</h2>
+## 🥑 Case Study #3 - Foodie-Fi – A. Customer Journey | Questions | Solutions | Result
 
 #### Q. Based off the 8 sample customers provided in the sample from the subscriptions table, write a brief description about each customer’s onboarding journey. Try to keep it as short as possible - you may also want to run some sort of join to make your explanations a bit easier!
 
