@@ -1,4 +1,4 @@
-## Case Study #7 - Balanced Tree Clothing Co. | High Level Sales Analysis | Questions | Solutions | Results
+## Case Study #7 - Balanced Tree Clothing Co. | A. High Level Sales Analysis | Questions | Solutions | Results
 
 #### Q1: What was the total quantity sold for all products?
 #### 🧠 My Approach & Solution:
@@ -15,7 +15,7 @@ FROM balanced_tree.sales;
 | ------------------- |
 | 45216               |
 
-- The total quantity sold for all products was 45216
+- The total quantity sold for all products was 45216.
 ---
 
 #### Q2: What is the total generated revenue for all products before discounts?
@@ -33,7 +33,7 @@ FROM balanced_tree.sales
 | ----------------------------- |
 | 1289453                       |
 
-- The total generated revenue for all products before discounts was 1289453
+- The total generated revenue for all products before discounts was 1289453.
 ---
 
 #### Q3: What was the total discount amount for all products?
