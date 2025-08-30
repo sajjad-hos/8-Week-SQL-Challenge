@@ -142,5 +142,5 @@ GROUP BY member_status;
 | Non-Member    | 515.0     |
 | Member        | 516.3      |
 
-- The average revenue for member transactions was 515.0 and for non-member transactions was 516.3
+- The average revenue for member transactions was 515, and for non-member transactions was 516.
 ---
