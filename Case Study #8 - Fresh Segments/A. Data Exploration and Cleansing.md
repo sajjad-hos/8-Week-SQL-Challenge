@@ -1,4 +1,4 @@
-## Data Exploration and Cleansing | Questions | Solutions | Results
+## A. Data Exploration and Cleansing | Questions | Solutions | Results
 
 #### Q1: Update the `fresh_segments.interest_metrics` table by modifying the `month_year` column to be a date data type with the start of the month
 #### 🧠 My Approach & Solution:
