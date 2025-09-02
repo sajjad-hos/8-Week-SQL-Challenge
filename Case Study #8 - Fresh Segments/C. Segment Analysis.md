@@ -1,4 +1,4 @@
-## Segment Analysis | Questions | Solutions | Results
+## C. Segment Analysis | Questions | Solutions | Results
 
 #### Q1: Using our filtered dataset by removing the interests with less than 6 months worth of data, which are the top 10 and bottom 10 interests which have the largest composition values in any `month_year`? Only use the maximum composition value for each interest but you must keep the corresponding `month_year`
 #### Q2: Which 5 interests had the lowest average `ranking` value?
