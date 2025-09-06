@@ -132,5 +132,32 @@ ORDER BY total_months DESC;
 - 6 total_months value passes the 90% cumulative percentage value.
   
 #### Q3: If we were to remove all `interest_id` values which are lower than the `total_months` value we found in the previous question - how many total data points would we be removing?
+#### 🧠 My Approach & Solution:
+- The CTE interest_months_summary calculates the number of distinct months each interest_id appears in.
+- Identified interest_ids that appear in fewer than 6 months.
+- All rows in the original table corresponding to these interest_ids are counted, giving the total rows that would be removed.
+
+````sql
+WITH interest_months_summary AS (
+    SELECT interest_id, COUNT(DISTINCT month_year) AS total_months
+    FROM fresh_segments.interest_metrics
+    WHERE interest_id IS NOT NULL
+    GROUP BY interest_id
+)
+SELECT COUNT(interest_id) AS rows_would_be_removed
+FROM fresh_segments.interest_metrics
+WHERE interest_id IN (
+  SELECT interest_id 
+  FROM interest_months_summary
+  WHERE total_months < 6);
+  ````
+
+#### 📊 Query Result & Insights:
+| rows_would_be_removed |
+| --------------------- |
+| 400                   |
+
+- A total of 400 data points would be removed!
+
 #### Q4: Does this decision make sense to remove these data points from a business perspective? Use an example where there are all 14 months present to a removed `interest` example for your arguments - think about what it means to have less months present from a segment perspective.
 #### Q5: After removing these interests - how many unique interests are there for each month?
