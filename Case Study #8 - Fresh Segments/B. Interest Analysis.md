@@ -1,4 +1,4 @@
-## B. Interest Analysis | Questions | Solutions | Results
+## Case Study #8 - Fresh Segments | B. Interest Analysis | Questions | Solutions | Results
 
 #### Q1: Which interests have been present in all `month_year` dates in our dataset?
 #### Q2: Using this same `total_months` measure - calculate the cumulative percentage of all records starting at 14 months - which total_months value passes the 90% cumulative percentage value?
