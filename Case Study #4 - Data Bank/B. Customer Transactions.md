@@ -172,7 +172,54 @@ Showing the result for the first 5 customer IDs.
 #### Q5: What is the percentage of customers who increase their closing balance by more than 5%?
 #### 🧠 My Approach & Solution:
 
-This solution will be updated!
+````sql
+-- CTE 1: Calculate running balance per customer per transaction
+WITH running AS (
+    SELECT
+        customer_id, txn_date, txn_type, txn_amount,
+        SUM(CASE 
+            WHEN txn_type = 'deposit' THEN txn_amount ELSE -txn_amount
+            END) OVER (PARTITION BY customer_id ORDER BY txn_date
+            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_balance
+    FROM data_bank.customer_transactions
+),
+-- CTE 2: Get closing balance per customer per month
+monthly_closing AS (
+    SELECT
+        customer_id,
+        DATE_TRUNC('month', txn_date) AS month,
+        MAX(running_balance) AS closing_balance
+    FROM running
+    GROUP BY customer_id, DATE_TRUNC('month', txn_date)
+),
+-- CTE3 3: Calculate month-over-month % change per customer
+pct_change AS (
+    SELECT
+        customer_id,
+        month,
+        closing_balance,
+        LAG(closing_balance) OVER (PARTITION BY customer_id ORDER BY month) AS prev_closing,
+        CASE
+            WHEN LAG(closing_balance) OVER (PARTITION BY customer_id ORDER BY month) IS NULL THEN NULL
+            ELSE
+                (closing_balance - LAG(closing_balance) OVER (PARTITION BY customer_id ORDER BY month)) 
+                / LAG(closing_balance) OVER (PARTITION BY customer_id ORDER BY month)::numeric * 100
+        END AS pct_change
+    FROM monthly_closing
+)
+-- Main Query: Calculate % of customers with >5% increase
+SELECT
+    ROUND(
+        COUNT(DISTINCT customer_id) * 100.0 
+        / (SELECT COUNT(DISTINCT customer_id) FROM monthly_closing)
+    , 1) AS pct_of_customers_increased_closing_balance_by_more_than_5_pct
+FROM pct_change
+WHERE pct_change > 5;
+  ````
+#### 📊 Query Result & Insights:
+| pct_of_customers_increased_closing_balance_by_more_than_5_pct |
+| ------------------------ |
+| 76.0                     |
 
 ---
 
