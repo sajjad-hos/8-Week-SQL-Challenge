@@ -124,6 +124,52 @@ ORDER BY frequency DESC;
 - Meat Lovers - Exclude Beef
 - Meat Lovers - Extra Bacon
 - Meat Lovers - Exclude Cheese, Bacon - Extra Mushroom, Peppers
+
+````sql
+SELECT
+    co.order_id,
+    co.customer_id,
+    CONCAT_WS(' - ',
+        p.pizza_name,
+        CASE WHEN excl_list IS NOT NULL THEN 'Exclude ' || excl_list END,
+        CASE WHEN extra_list IS NOT NULL THEN 'Extra ' || extra_list END
+    ) AS ordered_item
+FROM pizza_runner.customer_orders co
+JOIN pizza_runner.pizza_names p ON co.pizza_id = p.pizza_id
+LEFT JOIN LATERAL (
+    SELECT STRING_AGG(pt.topping_name, ', ') AS excl_list
+    FROM REGEXP_SPLIT_TO_TABLE(co.exclusions, ',\s*') AS excl(topping_id)
+    JOIN pizza_runner.pizza_toppings pt ON excl.topping_id::INTEGER = pt.topping_id
+    WHERE excl.topping_id NOT IN ('', 'null')
+) excl ON TRUE
+LEFT JOIN LATERAL (
+    SELECT STRING_AGG(pt.topping_name, ', ') AS extra_list
+    FROM REGEXP_SPLIT_TO_TABLE(co.extras, ',\s*') AS extra(topping_id)
+    JOIN pizza_runner.pizza_toppings pt ON extra.topping_id::INTEGER = pt.topping_id
+    WHERE extra.topping_id NOT IN ('', 'null')
+) extra ON TRUE
+ORDER BY co.order_id;
+  ````
+
+#### 📊 Query Result & Insights:
+| order_id | customer_id | ordered_item                                                    |
+| -------- | ----------- | --------------------------------------------------------------- |
+| 1        | 101         | Meatlovers                                                      |
+| 2        | 101         | Meatlovers                                                      |
+| 3        | 102         | Meatlovers                                                      |
+| 3        | 102         | Vegetarian                                                      |
+| 4        | 103         | Vegetarian - Exclude Cheese                                     |
+| 4        | 103         | Meatlovers - Exclude Cheese                                     |
+| 4        | 103         | Meatlovers - Exclude Cheese                                     |
+| 5        | 104         | Meatlovers - Extra Bacon                                        |
+| 6        | 101         | Vegetarian                                                      |
+| 7        | 105         | Vegetarian - Extra Bacon                                        |
+| 8        | 102         | Meatlovers                                                      |
+| 9        | 103         | Meatlovers - Exclude Cheese - Extra Bacon, Chicken              |
+| 10       | 104         | Meatlovers - Exclude BBQ Sauce, Mushrooms - Extra Bacon, Cheese |
+| 10       | 104         | Meatlovers                                                      |
+
+---
 #### 5. Generate an alphabetically ordered comma separated ingredient list for each pizza order from the customer_orders table and add a 2x in front of any relevant ingredients
 - For example: "Meat Lovers: 2xBacon, Beef, ... , Salami"
 #### 6. What is the total quantity of each ingredient used in all delivered pizzas sorted by most frequent first?
