@@ -136,8 +136,140 @@ ORDER BY cnp.next_active_plan;
 | churn            | 92                        | 9.2%                       |
 
 #### Q7: What is the customer count and percentage breakdown of all 5 plan_name values at 2020-12-31?
+#### 🧠 My Approach & Solution:
+````sql
+WITH last_subscriptions AS (
+    SELECT
+        customer_id,
+        plan_id AS current_plan,
+        start_date AS subscription_start,
+        LEAD(start_date) OVER (PARTITION BY customer_id ORDER BY start_date) AS next_subscription_date
+    FROM foodie_fi.subscriptions
+    WHERE start_date <= '2020-12-31'
+)
+SELECT
+    current_plan AS plan_id,
+    COUNT(DISTINCT customer_id) AS customers_no_next,
+    ROUND(100.0 * COUNT(DISTINCT customer_id) / (SELECT COUNT(DISTINCT customer_id) FROM foodie_fi.subscriptions), 1) || '%' AS percent_of_all_customers
+FROM last_subscriptions
+WHERE next_subscription_date IS NULL
+GROUP BY current_plan
+ORDER BY current_plan;
+  ````
+
+#### 📊 Query Result & Insights:
+| plan_id | customers_no_next | percent_of_all_customers |
+| ------- | ----------------- | ------------------------ |
+| 0       | 19                | 1.9%                     |
+| 1       | 224               | 22.4%                    |
+| 2       | 326               | 32.6%                    |
+| 3       | 195               | 19.5%                    |
+| 4       | 236               | 23.6%                    |
+
 #### Q8: How many customers have upgraded to an annual plan in 2020?
+#### 🧠 My Approach & Solution:
+````sql
+SELECT COUNT(DISTINCT customer_id) AS total_customers
+FROM foodie_fi.subscriptions
+WHERE plan_id = 3 AND start_date <= '2020-12-31';
+  ````
+#### 📊 Query Result & Insights:
+| total_customers |
+| --------------- |
+| 195             |
+
 #### Q9: How many days on average does it take for a customer to an annual plan from the day they join Foodie-Fi?
+#### 🧠 My Approach & Solution:
+````sql
+WITH trial_subscriptions AS (
+    SELECT s.customer_id, s.start_date AS trial_start_date
+    FROM subscriptions s
+    INNER JOIN plans p ON s.plan_id = p.plan_id
+    WHERE p.plan_name = 'trial'
+),
+annual_subscriptions AS (
+    SELECT s.customer_id, s.start_date AS annual_start_date
+    FROM subscriptions s
+    INNER JOIN plans p ON s.plan_id = p.plan_id
+    WHERE p.plan_name = 'pro annual'
+)
+SELECT ROUND(AVG(a.annual_start_date - t.trial_start_date), 0) AS average_days_to_upgrade
+FROM trial_subscriptions t
+INNER JOIN annual_subscriptions a ON t.customer_id = a.customer_id;
+  ````
+#### 📊 Query Result & Insights:
+| average_days_to_upgrade |
+| ----------------------- |
+| 105                     |
+
+- 105 days on average does it take for a customer to sign up for an annual plan from the day they join Foodie-Fi.
+  
 #### Q10: Can you further breakdown this average value into 30 day periods (i.e. 0-30 days, 31-60 days etc)
+````sql
+WITH trial_subscriptions AS (
+    SELECT 
+        customer_id, 
+        start_date AS trial_start
+    FROM foodie_fi.subscriptions
+    WHERE plan_id = 0
+),
+annual_subscriptions AS (
+    SELECT 
+        customer_id, 
+        start_date AS annual_start
+    FROM foodie_fi.subscriptions
+    WHERE plan_id = 3
+),
+upgrade_buckets AS (
+    SELECT 
+        WIDTH_BUCKET(a.annual_start - t.trial_start, 0, 365, 12) AS bucket_number
+    FROM trial_subscriptions t
+    JOIN annual_subscriptions a
+      ON t.customer_id = a.customer_id
+)
+SELECT 
+    ((bucket_number - 1) * 30 || ' - ' || bucket_number * 30 || ' days') AS upgrade_period,
+    COUNT(*) AS customers_in_bucket
+FROM upgrade_buckets
+GROUP BY bucket_number
+ORDER BY bucket_number;
+  ````
+#### 📊 Query Result & Insights:
+| upgrade_period | customers_in_bucket |
+| -------------- | ------------------- |
+| 0 - 30 days    | 49                  |
+| 30 - 60 days   | 24                  |
+| 60 - 90 days   | 35                  |
+| 90 - 120 days  | 35                  |
+| 120 - 150 days | 43                  |
+| 150 - 180 days | 37                  |
+| 180 - 210 days | 24                  |
+| 210 - 240 days | 4                   |
+| 240 - 270 days | 4                   |
+| 270 - 300 days | 1                   |
+| 300 - 330 days | 1                   |
+| 330 - 360 days | 1                   |
+
 #### Q11: How many customers downgraded from a pro monthly to a basic monthly plan in 2020?
+````sql
+WITH customer_plan_changes AS (
+    SELECT
+        customer_id,
+        start_date,
+        plan_id AS current_plan,
+        LEAD(plan_id) OVER (PARTITION BY customer_id ORDER BY start_date) AS next_plan
+    FROM foodie_fi.subscriptions
+    WHERE EXTRACT(YEAR FROM start_date) = 2020
+)
+SELECT
+    COUNT(DISTINCT customer_id) AS downgraded_customers_2020
+FROM customer_plan_changes
+WHERE current_plan = 2 AND next_plan = 1;
+  ````
+#### 📊 Query Result & Insights:
+| downgraded_customers_2020 |
+| ------------------------- |
+| 0                         |
+
+- There are no customers downgraded from a pro monthly to a basic monthly plan in 2020.
 
