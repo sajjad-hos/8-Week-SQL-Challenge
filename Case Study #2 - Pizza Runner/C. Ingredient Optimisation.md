@@ -173,4 +173,95 @@ ORDER BY co.order_id;
 ---
 #### 5. Generate an alphabetically ordered comma separated ingredient list for each pizza order from the customer_orders table and add a 2x in front of any relevant ingredients
 - For example: "Meat Lovers: 2xBacon, Beef, ... , Salami"
+
+#### 🧠 My Approach & Solution:
+
+````sql
+WITH cleaned_orders AS (
+    SELECT order_id, customer_id, pizza_id, order_time,
+        NULLIF(NULLIF(extras, ''), 'null') AS extras,
+        NULLIF(NULLIF(exclusions, ''), 'null') AS exclusions
+    FROM pizza_runner.customer_orders
+),
+expanded_toppings AS (
+    SELECT
+        o.order_id, o.customer_id, o.pizza_id, o.order_time, pt.topping_id, pt.topping_name,
+        -- mark as 2x if in extras
+        CASE 
+            WHEN o.extras IS NOT NULL AND pt.topping_id = ANY(string_to_array(o.extras, ',')::INT[]) 
+            THEN '2x ' || pt.topping_name ELSE pt.topping_name END AS ingredient,
+        CASE WHEN o.exclusions IS NOT NULL THEN string_to_array(o.exclusions, ',')::INT[] ELSE '{}'::INT[] END AS exclusions_array
+    FROM cleaned_orders o
+    CROSS JOIN LATERAL unnest(string_to_array((SELECT toppings FROM pizza_runner.pizza_recipes WHERE pizza_id = o.pizza_id), ',')::INT[]) AS t(topping_id)
+    JOIN pizza_runner.pizza_toppings pt USING(topping_id)
+)
+SELECT
+    order_id, STRING_AGG(ingredient, ', ' ORDER BY topping_name) AS ingredients_list
+FROM expanded_toppings
+WHERE NOT (topping_id = ANY(exclusions_array))
+GROUP BY order_id, customer_id, pizza_id, order_time
+ORDER BY order_id;
+  ````
+
+#### 📊 Query Result & Insights:
+| order_id | ingredients_list                                                                                                             |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| 1        | BBQ Sauce, Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami                                                        |
+| 2        | BBQ Sauce, Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami                                                        |
+| 3        | BBQ Sauce, Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami                                                        |
+| 3        | Cheese, Mushrooms, Onions, Peppers, Tomato Sauce, Tomatoes                                                                   |
+| 4        | BBQ Sauce, BBQ Sauce, Bacon, Bacon, Beef, Beef, Chicken, Chicken, Mushrooms, Mushrooms, Pepperoni, Pepperoni, Salami, Salami |
+| 4        | Mushrooms, Onions, Peppers, Tomato Sauce, Tomatoes                                                                           |
+| 5        | BBQ Sauce, 2x Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami                                                     |
+| 6        | Cheese, Mushrooms, Onions, Peppers, Tomato Sauce, Tomatoes                                                                   |
+| 7        | Cheese, Mushrooms, Onions, Peppers, Tomato Sauce, Tomatoes                                                                   |
+| 8        | BBQ Sauce, Bacon, Beef, Cheese, Chicken, Mushrooms, Pepperoni, Salami                                                        |
+| 9        | BBQ Sauce, 2x Bacon, Beef, 2x Chicken, Mushrooms, Pepperoni, Salami                                                          |
+| 10       | BBQ Sauce, 2x Bacon, Bacon, Beef, Beef, Cheese, 2x Cheese, Chicken, Chicken, Mushrooms, Pepperoni, Pepperoni, Salami, Salami |
+
+---
 #### 6. What is the total quantity of each ingredient used in all delivered pizzas sorted by most frequent first?
+
+#### 🧠 My Approach & Solution:
+
+````sql
+WITH ingredient_cte AS (
+    SELECT 
+        c.order_id,
+        pz.pizza_name,
+        t.topping_name,
+        CASE WHEN t.topping_id = ANY(string_to_array(NULLIF(c.extras, 'null'), ',')::INT[]) THEN 2 ELSE 1 END AS times_used_topping
+    FROM customer_orders c
+    INNER JOIN pizza_names pz ON c.pizza_id = pz.pizza_id
+    INNER JOIN pizza_recipes rcp ON c.pizza_id = rcp.pizza_id
+    CROSS JOIN LATERAL unnest(string_to_array(rcp.toppings, ',')::INT[]) AS t_id(topping_id)
+    INNER JOIN pizza_toppings t ON t.topping_id = t_id.topping_id
+    INNER JOIN runner_orders r ON c.order_id = r.order_id
+    WHERE r.cancellation IS NULL
+         AND (c.exclusions IS NULL OR t.topping_id <> ALL(string_to_array(NULLIF(c.exclusions, 'null'), ',')::INT[]))
+)
+SELECT
+      topping_name,
+      SUM(times_used_topping) AS total_quantity
+FROM ingredient_cte
+GROUP BY topping_name
+ORDER BY total_quantity DESC;
+  ````
+
+#### 📊 Query Result & Insights:
+| topping_name | total_quantity |
+| ------------ | -------------- |
+| Mushrooms    | 5              |
+| Beef         | 3              |
+| Chicken      | 3              |
+| Pepperoni    | 3              |
+| Bacon        | 3              |
+| BBQ Sauce    | 3              |
+| Salami       | 3              |
+| Cheese       | 2              |
+| Onions       | 2              |
+| Tomato Sauce | 2              |
+| Peppers      | 2              |
+| Tomatoes     | 2              |
+
+---
