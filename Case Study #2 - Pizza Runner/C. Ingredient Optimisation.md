@@ -95,6 +95,30 @@ ORDER BY extras_count DESC;
 ---
 
 #### 3. What was the most common exclusion?
+#### 🧠 My Approach & Solution:
+
+````sql
+SELECT
+    p.topping_name,
+    COUNT(*) AS frequency
+FROM pizza_runner.customer_orders co,
+    REGEXP_SPLIT_TO_TABLE(co.exclusions, ',\s*') AS excl(new_exclusion)
+    INNER JOIN pizza_runner.pizza_toppings p ON excl.new_exclusion::INTEGER = p.topping_id
+WHERE excl.new_exclusion NOT IN ('', 'null')
+GROUP BY p.topping_name
+ORDER BY frequency DESC;
+  ````
+
+#### 📊 Query Result & Insights:
+| topping_name | frequency |
+| ------------ | --------- |
+| Cheese       | 4         |
+| Mushrooms    | 1         |
+| BBQ Sauce    | 1         |
+
+- The most common exclusion was Cheese.
+---
+
 #### 4. Generate an order item for each record in the customers_orders table in the format of one of the following:
 - Meat Lovers
 - Meat Lovers - Exclude Beef
