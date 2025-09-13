@@ -83,7 +83,58 @@ WHERE plan_id = 4;
 - A total of 307 customers have churned, which is about 30.7% of all customers.
 
 #### Q5: How many customers have churned straight after their initial free trial - what percentage is this rounded to the nearest whole number?
+#### 🧠 My Approach & Solution:
+````sql
+WITH ordered_subs AS (
+    SELECT
+        customer_id, plan_id,
+        ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY start_date) AS subscription_number
+    FROM foodie_fi.subscriptions
+)
+SELECT
+    COUNT(*) AS churned_after_trial,
+    ROUND(100.0 * COUNT(*) / (SELECT COUNT(DISTINCT customer_id) FROM foodie_fi.subscriptions),
+        0) || '%' AS churn_percentage
+FROM ordered_subs
+WHERE plan_id = 4 AND subscription_number = 2;
+  ````
+
+#### 📊 Query Result & Insights:
+| churned_after_trial | churn_percentage |
+| ------------------- | ---------------- |
+| 92                  | 9%               |
+
+- 92 customers churned immediately after their free trial, which is 9% of all customers.
+
 #### Q6: What is the number and percentage of customer plans after their initial free trial?
+#### 🧠 My Approach & Solution:
+````sql
+WITH customer_next_plan AS (
+    SELECT 
+        customer_id,
+        plan_id AS free_trial_plan,
+        LEAD(plan_id) OVER (PARTITION BY customer_id ORDER BY start_date) AS next_active_plan
+    FROM subscriptions
+)
+SELECT 
+    p.plan_name AS plan_after_trial,
+    COUNT(*) AS total_customers_converted,
+    ROUND(100.0 * COUNT(*) / (SELECT COUNT(DISTINCT customer_id) FROM subscriptions), 1) || '%' AS percent_of_total_customers
+FROM customer_next_plan cnp
+LEFT JOIN plans p ON cnp.next_active_plan = p.plan_id
+WHERE cnp.free_trial_plan = 0 AND cnp.next_active_plan IS NOT NULL
+GROUP BY p.plan_name, cnp.next_active_plan
+ORDER BY cnp.next_active_plan;
+  ````
+
+#### 📊 Query Result & Insights:
+| plan_after_trial | total_customers_converted | percent_of_total_customers |
+| ---------------- | ------------------------- | -------------------------- |
+| basic monthly    | 546                       | 54.6%                      |
+| pro monthly      | 325                       | 32.5%                      |
+| pro annual       | 37                        | 3.7%                       |
+| churn            | 92                        | 9.2%                       |
+
 #### Q7: What is the customer count and percentage breakdown of all 5 plan_name values at 2020-12-31?
 #### Q8: How many customers have upgraded to an annual plan in 2020?
 #### Q9: How many days on average does it take for a customer to an annual plan from the day they join Foodie-Fi?
