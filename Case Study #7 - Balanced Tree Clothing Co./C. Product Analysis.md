@@ -303,6 +303,37 @@ ORDER BY penetration_pct DESC;
 ---
 #### Q10: What is the most common combination of at least 1 quantity of any 3 products in a single transaction?  
 #### 🧠 My Approach & Solution:
-- To be added!
+
+````sql
+WITH txn_products AS (
+    SELECT 
+        s.txn_id AS transaction_id, 
+        p.product_name AS product_name
+    FROM balanced_tree.sales s
+    LEFT JOIN balanced_tree.product_details p ON s.prod_id = p.product_id
+)
+SELECT 
+    tp1.product_name AS product_first,
+    tp2.product_name AS product_second,
+    tp3.product_name AS product_third,
+    COUNT(*) AS transaction_count
+FROM txn_products tp1
+LEFT JOIN txn_products tp2 ON tp1.transaction_id = tp2.transaction_id
+	AND tp1.product_name < tp2.product_name
+LEFT JOIN txn_products tp3 ON tp1.transaction_id = tp3.transaction_id 
+    AND tp1.product_name < tp3.product_name 
+    AND tp2.product_name < tp3.product_name
+WHERE tp1.product_name IS NOT NULL
+  AND tp2.product_name IS NOT NULL
+  AND tp3.product_name IS NOT NULL
+GROUP BY tp1.product_name, tp2.product_name, tp3.product_name
+ORDER BY transaction_count DESC
+LIMIT 1;
+  ````
+
+#### 📊 Query Result & Insights:
+| product_first                | product_second              | product_third          | transaction_count |
+| ---------------------------- | --------------------------- | ---------------------- | ----------------- |
+| Grey Fashion Jacket - Womens | Teal Button Up Shirt - Mens | White Tee Shirt - Mens | 352               |
 
 ---
